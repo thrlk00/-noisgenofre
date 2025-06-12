@@ -45,27 +45,10 @@ Imagens e sprites customizados
 🚀 Rodando localmente
 Clone o repositório:
 
-bash
-Copiar
-Editar
-git clone https://github.com/seu-usuario/jogo-jamal.git
-cd jogo-jamal
+git clone https://github.com/thrlk00/-noisgenofre.git<br>
+cd jogo-jamal<br>
 Abra o arquivo index.html em seu navegador.
 
-📁 Estrutura do projeto
-pgsql
-Copiar
-Editar
-📦 jogo-jamal
-├── img/
-│   ├── bg-battle.png
-│   ├── boss-open.png
-│   ├── tubo-cigarro.png
-│   ├── jamal.png
-│   └── tutorial-*.png
-├── index.html
-├── style.css
-└── script.js
 ✨ Créditos
 Jogo desenvolvido pela turma de Engenharia de Software Unicesumar: Arthur Andrade, Arthur Prates...
 
