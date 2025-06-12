@@ -1,324 +1,318 @@
+// Seleciona o canvas e contexto
 const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+const contexto = canvas.getContext("2d");
 
-let frames = 0;
+let quadros = 0;
 let tubosPassados = 0;
-let tuboScore = 0;
-const TUBOS_ATÉ_BOSS = 10;
+let pontuacaoTubos = 0;
+const TUBOS_ATE_CHEFAO = 10;
 
-let jamalHp = 4;
-let bossHp = 10;
+let vidaJamal = 4;
+let vidaChefao = 10;
 
-const state = {
-  READY: 0,
+const estados = {
+  PRONTO: 0,
   TUBOS: 1,
-  BOSS: 2,
-  GAME_OVER: 3,
-  VICTORY: 4 // <-- novo estado
+  CHEFAO: 2,
+  DERROTA: 3,
+  VITORIA: 4
 };
 
+let estadoAtual = estados.PRONTO;
 
-let currentState = state.READY;
+const imagemFundo = new Image();
+imagemFundo.src = "img/bg-battle.png";
+const imagemChefao = new Image();
+imagemChefao.src = "img/boss-open.png";
+const imagemTubo = new Image();
+imagemTubo.src = "img/tubo-cigarro.png";
+const imagemJamal = new Image();
+imagemJamal.src = "img/jamal.png";
 
-const bg = new Image();
-bg.src = "img/bg-battle.png";
-const boss = new Image();
-boss.src = "img/boss-open.png";
-const tuboCigarro = new Image();
-tuboCigarro.src = "img/tubo-cigarro.png";
-const jamalImg = new Image();
-jamalImg.src = "img/jamal.png";
-
-const player = {
+const jamal = {
   x: 80,
   y: 200,
-  width: 32,
-  height: 32,
-  gravity: 0.10,
-  velocity: 1,
-  jump: -3.6,
+  largura: 32,
+  altura: 32,
+  gravidade: 0.10,
+  velocidade: 1,
+  pulo: -3.6,
 
-  flap() {
-    this.velocity = this.jump;
+  pular() {
+    this.velocidade = this.pulo;
   },
 
-  update() {
-    this.velocity += this.gravity;
-    this.y += this.velocity;
+  atualizar() {
+    this.velocidade += this.gravidade;
+    this.y += this.velocidade;
 
-    if (currentState === state.TUBOS && this.y + this.height >= canvas.height) {
-      this.reset();
-      pipes.reset();
-      bossFight.reset();
-      currentState = state.READY;
+    if (estadoAtual === estados.TUBOS && this.y + this.altura >= canvas.height) {
+      this.reiniciar();
+      tubos.reiniciar();
+      chefao.reiniciar();
+      estadoAtual = estados.PRONTO;
     }
 
     if (this.y <= 0) {
       this.y = 0;
-      this.velocity = 0;
+      this.velocidade = 0;
     }
   },
 
-  draw() {
-    ctx.drawImage(jamalImg, this.x, this.y, this.width, this.height);
+  desenhar() {
+    contexto.drawImage(imagemJamal, this.x, this.y, this.largura, this.altura);
   },
 
-  reset() {
+  reiniciar() {
     this.y = 200;
-    this.velocity = 0;
-    tuboScore = 0;
-    jamalHp = 4;
-    bossHp = 10;
+    this.velocidade = 0;
+    pontuacaoTubos = 0;
+    vidaJamal = 4;
+    vidaChefao = 10;
   }
 };
 
-function handleJump() {
-  if (currentState === state.READY) {
-    currentState = state.TUBOS;
-    startGame();
-  } else if (currentState === state.TUBOS || currentState === state.BOSS) {
-    player.flap();
+function lidarComPulo() {
+  if (estadoAtual === estados.PRONTO) {
+    estadoAtual = estados.TUBOS;
+    iniciarJogo();
+  } else if (estadoAtual === estados.TUBOS || estadoAtual === estados.CHEFAO) {
+    jamal.pular();
   }
 }
 
-canvas.addEventListener("click", handleJump);
+canvas.addEventListener("click", lidarComPulo);
 document.addEventListener("keydown", (e) => {
   if (e.code === "Space") {
-    handleJump();
+    lidarComPulo();
   }
 });
 
-const pipes = {
-  position: [],
-  width: 96,
-  height: 300,
-  gap: 160,
+const tubos = {
+  posicoes: [],
+  largura: 96,
+  altura: 300,
+  espaco: 160,
 
-  draw() {
-    this.position.forEach(p => {
-      ctx.save();
-      ctx.translate(p.x + this.width / 2, p.y + this.height / 2);
-      ctx.rotate(Math.PI);
-      ctx.drawImage(tuboCigarro, -this.width / 2, -this.height / 2, this.width, this.height);
-      ctx.restore();
+  desenhar() {
+    this.posicoes.forEach(tubo => {
+      contexto.save();
+      contexto.translate(tubo.x + this.largura / 2, tubo.y + this.altura / 2);
+      contexto.rotate(Math.PI);
+      contexto.drawImage(imagemTubo, -this.largura / 2, -this.altura / 2, this.largura, this.altura);
+      contexto.restore();
 
-      const bottomY = p.y + this.height + this.gap;
-      ctx.drawImage(tuboCigarro, p.x, bottomY, this.width, this.height);
+      const yInferior = tubo.y + this.altura + this.espaco;
+      contexto.drawImage(imagemTubo, tubo.x, yInferior, this.largura, this.altura);
     });
   },
 
-  update() {
-    if (tubosPassados < TUBOS_ATÉ_BOSS && frames % 150 === 0) {
+  atualizar() {
+    if (tubosPassados < TUBOS_ATE_CHEFAO && quadros % 150 === 0) {
       let y = -Math.floor(Math.random() * 150);
-      this.position.push({ x: canvas.width, y });
+      this.posicoes.push({ x: canvas.width, y });
     }
 
-    this.position.forEach((p, i) => {
-      p.x -= 2;
+    this.posicoes.forEach((tubo, i) => {
+      tubo.x -= 2;
 
-      const px = player.x, py = player.y, pw = player.width, ph = player.height;
+      const px = jamal.x, py = jamal.y, pw = jamal.largura, ph = jamal.altura;
+      const yTopo = tubo.y;
+      const yBase = tubo.y + this.altura + this.espaco;
 
-      const topY = p.y;
-      const bottomY = p.y + this.height + this.gap;
+      const margemX = 10;
+      const margemY = 8;
 
-      const topCollision =
-        px + pw > p.x &&
-        px < p.x + this.width &&
-        py < topY + this.height;
+      const colisaoTopo =
+        px + pw - margemX > tubo.x &&
+        px + margemX < tubo.x + this.largura &&
+        py + margemY < yTopo + this.altura;
 
-      const bottomCollision =
-        px + pw > p.x &&
-        px < p.x + this.width &&
-        py + ph > bottomY;
+      const colisaoBase =
+        px + pw - margemX > tubo.x &&
+        px + margemX < tubo.x + this.largura &&
+        py + ph - margemY > yBase;
 
-      if (topCollision || bottomCollision) {
-        pipes.reset();
-        player.reset();
-        bossFight.reset();
-        currentState = state.READY;
+      if (colisaoTopo || colisaoBase) {
+        this.reiniciar();
+        jamal.reiniciar();
+        chefao.reiniciar();
+        estadoAtual = estados.PRONTO;
       }
 
-      if (p.x + this.width < 0) {
-        this.position.shift();
+      if (tubo.x + this.largura < 0) {
+        this.posicoes.shift();
         tubosPassados++;
-        tuboScore++;
-        if (tubosPassados >= TUBOS_ATÉ_BOSS) currentState = state.BOSS;
+        pontuacaoTubos++;
+        if (tubosPassados >= TUBOS_ATE_CHEFAO) estadoAtual = estados.CHEFAO;
       }
     });
   },
 
-  reset() {
-    this.position = [];
+  reiniciar() {
+    this.posicoes = [];
     tubosPassados = 0;
-    tuboScore = 0;
+    pontuacaoTubos = 0;
   }
 };
 
-const bossFight = {
+const chefao = {
   x: 280,
   y: 80,
-  width: 180,
-  height: 180,
-  dir: 1,
-  speed: 2,
+  largura: 180,
+  altura: 180,
+  direcao: 1,
+  velocidade: 2,
   bandeiras: [],
   cigarros: [],
 
-  update() {
- if (jamalHp <= 0) {
-  currentState = state.GAME_OVER;
-  return;
-}
-if (bossHp <= 0) {
-  currentState = state.VICTORY;
-  return;
-}
-
-
-
-    this.y += this.dir * this.speed;
-    if (this.y < 20 || this.y > canvas.height - this.height) {
-      this.dir *= -1;
+  atualizar() {
+    if (vidaJamal <= 0) {
+      estadoAtual = estados.DERROTA;
+      return;
+    }
+    if (vidaChefao <= 0) {
+      estadoAtual = estados.VITORIA;
+      return;
     }
 
-    if (frames % 60 === 0) {
-      this.bandeiras.push({ x: this.x + this.width / 2, y: this.y + this.height / 2 });
+    this.y += this.direcao * this.velocidade;
+    if (this.y < 20 || this.y > canvas.height - this.altura) {
+      this.direcao *= -1;
+    }
+
+    if (quadros % 60 === 0) {
+      this.bandeiras.push({
+        x: this.x + this.largura / 2,
+        y: this.y + this.altura / 2
+      });
     }
 
     this.bandeiras.forEach(b => b.x -= 3);
-this.bandeiras = this.bandeiras.filter(b => {
-  const bw = 20;
-  const bh = 10;
-  const padding = 4;
+    this.bandeiras = this.bandeiras.filter(b => {
+      const bw = 20, bh = 10, margem = 4;
+      const acerto =
+        b.x + margem < jamal.x + jamal.largura &&
+        b.x + bw - margem > jamal.x &&
+        b.y + margem < jamal.y + jamal.altura &&
+        b.y + bh - margem > jamal.y;
 
-  const hit =
-    b.x + padding < player.x + player.width &&
-    b.x + bw - padding > player.x &&
-    b.y + padding < player.y + player.height &&
-    b.y + bh - padding > player.y;
+      if (acerto) vidaJamal--;
+      return b.x > -bw && !acerto;
+    });
 
-  if (hit) jamalHp--;
-  return b.x > -bw && !hit;
-});
-
-
-    if (frames % 30 === 0) {
-      this.cigarros.push({ x: player.x + player.width, y: player.y + player.height / 2 });
+    if (quadros % 30 === 0) {
+      this.cigarros.push({
+        x: jamal.x + jamal.largura,
+        y: jamal.y + jamal.altura / 2
+      });
     }
 
     this.cigarros.forEach(c => c.x += 5);
     this.cigarros = this.cigarros.filter(c => {
-      const hit =
+      const acerto =
         c.x + 16 >= this.x &&
-        c.x <= this.x + this.width &&
+        c.x <= this.x + this.largura &&
         c.y >= this.y &&
-        c.y <= this.y + this.height;
-      if (hit) bossHp--;
-      return c.x < canvas.width + 20 && !hit;
+        c.y <= this.y + this.altura;
+
+      if (acerto) vidaChefao--;
+      return c.x < canvas.width + 20 && !acerto;
     });
   },
 
-  draw() {
-    ctx.save();
-    ctx.scale(-1, 1);
-    ctx.drawImage(boss, -this.x - this.width, this.y, this.width, this.height);
-    ctx.restore();
+  desenhar() {
+    contexto.save();
+    contexto.scale(-1, 1);
+    contexto.drawImage(imagemChefao, -this.x - this.largura, this.y, this.largura, this.altura);
+    contexto.restore();
 
-    ctx.fillStyle = "orange";
-    this.bandeiras.forEach(b => ctx.fillRect(b.x, b.y, 20, 10));
-    ctx.fillStyle = "white";
-    this.cigarros.forEach(c => ctx.fillRect(c.x, c.y, 16, 4));
+    contexto.fillStyle = "orange";
+    this.bandeiras.forEach(b => contexto.fillRect(b.x, b.y, 20, 10));
+    contexto.fillStyle = "white";
+    this.cigarros.forEach(c => contexto.fillRect(c.x, c.y, 16, 4));
 
-    ctx.fillStyle = "red";
-    ctx.fillRect(canvas.width - 120, 20, bossHp * 10, 10);
-    ctx.fillStyle = "green";
-    ctx.fillRect(20, 40, jamalHp * 20, 10);
+    contexto.fillStyle = "red";
+    contexto.fillRect(canvas.width - 120, 20, vidaChefao * 10, 10);
+    contexto.fillStyle = "green";
+    contexto.fillRect(20, 40, vidaJamal * 20, 10);
   },
 
-  reset() {
+  reiniciar() {
     this.bandeiras = [];
     this.cigarros = [];
     this.y = 80;
-    this.dir = 1;
+    this.direcao = 1;
   }
 };
 
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(bg, 0, 0, canvas.width, canvas.height);
+function desenharJogo() {
+  contexto.clearRect(0, 0, canvas.width, canvas.height);
+  contexto.drawImage(imagemFundo, 0, 0, canvas.width, canvas.height);
 
-  if (currentState === state.TUBOS) {
-    pipes.draw();
-  } else if (currentState === state.BOSS) {
-    bossFight.draw();
+  if (estadoAtual === estados.TUBOS) tubos.desenhar();
+  else if (estadoAtual === estados.CHEFAO) chefao.desenhar();
+
+  jamal.desenhar();
+
+  contexto.fillStyle = "white";
+  contexto.font = "20px 'Press Start 2P'";
+  contexto.textAlign = "center";
+  contexto.fillText(pontuacaoTubos, canvas.width / 2, 40);
+
+  if (estadoAtual === estados.PRONTO) {
+    contexto.fillStyle = "white";
+    contexto.font = "16px 'Press Start 2P'";
+    contexto.fillText("Clique para começar", canvas.width / 2, canvas.height / 2);
   }
 
-  player.draw();
-
-  ctx.fillStyle = "white";
-  ctx.font = "20px 'Press Start 2P'";
-  ctx.textAlign = "center";
-  ctx.fillText(tuboScore, canvas.width / 2, 40);
-
-  if (currentState === state.READY) {
-    ctx.fillStyle = "white";
-    ctx.font = "16px 'Press Start 2P'";
-    ctx.fillText("Clique para começar", canvas.width / 2, canvas.height / 2);
-  }
-
-if (currentState === state.VICTORY) {
-  ctx.fillStyle = "lightgreen";
-  ctx.font = "16px 'Press Start 2P'";
-  ctx.fillText("VOCÊ GANHOU!", canvas.width / 2, canvas.height / 2 - 20);
-  ctx.fillText("OS LEGENDÁRIOS ACABARAM!", canvas.width / 2, canvas.height / 2 + 20);
-  retryButton.style.display = "block";
-} else if (currentState === state.GAME_OVER) {
-  ctx.fillStyle = "red";
-  ctx.font = "16px 'Press Start 2P'";
-  ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
-  retryButton.style.display = "block";
-} else {
-  retryButton.style.display = "none";
-}
-
-}
-
-function update() {
-  if (currentState === state.TUBOS) pipes.update();
-  else if (currentState === state.BOSS) bossFight.update();
-
-  if (currentState !== state.READY) {
-    player.update();
+  if (estadoAtual === estados.VITORIA) {
+    contexto.fillStyle = "lightgreen";
+    contexto.font = "16px 'Press Start 2P'";
+    contexto.fillText("VOCÊ GANHOU!", canvas.width / 2, canvas.height / 2 - 20);
+    contexto.fillText("OS LEGENDÁRIOS ACABARAM!", canvas.width / 2, canvas.height / 2 + 20);
+    botaoReiniciar.style.display = "block";
+  } else if (estadoAtual === estados.DERROTA) {
+    contexto.fillStyle = "red";
+    contexto.font = "16px 'Press Start 2P'";
+    contexto.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
+    botaoReiniciar.style.display = "block";
+  } else {
+    botaoReiniciar.style.display = "none";
   }
 }
 
-function startGame() {
-  player.reset();
-  pipes.reset();
-  bossFight.reset();
-  frames = 0;
+function atualizarJogo() {
+  if (estadoAtual === estados.TUBOS) tubos.atualizar();
+  else if (estadoAtual === estados.CHEFAO) chefao.atualizar();
+
+  if (estadoAtual !== estados.PRONTO) jamal.atualizar();
 }
 
-function loop() {
-  update();
-  draw();
-  frames++;
-  requestAnimationFrame(loop); // roda continuamente
+function iniciarJogo() {
+  jamal.reiniciar();
+  tubos.reiniciar();
+  chefao.reiniciar();
+  quadros = 0;
 }
 
+function loopDoJogo() {
+  atualizarJogo();
+  desenharJogo();
+  quadros++;
+  requestAnimationFrame(loopDoJogo);
+}
 
-bg.onload = () => {
-  draw();
-  loop(); // só inicia o loop quando a imagem está carregada
+imagemFundo.onload = () => {
+  desenharJogo();
+  loopDoJogo();
 };
 
-const retryButton = document.getElementById("retryButton");
-
-retryButton.addEventListener("click", () => {
-  player.reset();
-  pipes.reset();
-  bossFight.reset();
-  currentState = state.READY;
-  frames = 0;
+const botaoReiniciar = document.getElementById("retryButton");
+botaoReiniciar.addEventListener("click", () => {
+  jamal.reiniciar();
+  tubos.reiniciar();
+  chefao.reiniciar();
+  estadoAtual = estados.PRONTO;
+  quadros = 0;
 });
-
