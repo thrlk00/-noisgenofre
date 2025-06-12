@@ -45,8 +45,8 @@ Imagens e sprites customizados
 🚀 Rodando localmente
 Clone o repositório:
 
-git clone https://github.com/seu-usuario/jogo-jamal.git
-cd jogo-jamal
+git clone https://github.com/seu-usuario/jogo-jamal.git<br>
+cd jogo-jamal<br>
 Abra o arquivo index.html em seu navegador.
 
 ✨ Créditos
