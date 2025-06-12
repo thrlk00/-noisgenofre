@@ -10,12 +10,15 @@ let jamalHp = 4;
 let bossHp = 10;
 
 const state = {
-  TUBOS: 0,
-  BOSS: 1,
-  GAME_OVER: 2
+  READY: 0,
+  TUBOS: 1,
+  BOSS: 2,
+  GAME_OVER: 3,
+  VICTORY: 4 // <-- novo estado
 };
 
-let currentState = state.TUBOS;
+
+let currentState = state.READY;
 
 const bg = new Image();
 bg.src = "img/bg-battle.png";
@@ -31,9 +34,9 @@ const player = {
   y: 200,
   width: 32,
   height: 32,
-  gravity: 0.25,
-  velocity: 0,
-  jump: -4.6,
+  gravity: 0.10,
+  velocity: 1,
+  jump: -3.6,
 
   flap() {
     this.velocity = this.jump;
@@ -47,7 +50,7 @@ const player = {
       this.reset();
       pipes.reset();
       bossFight.reset();
-      currentState = state.TUBOS;
+      currentState = state.READY;
     }
 
     if (this.y <= 0) {
@@ -70,7 +73,10 @@ const player = {
 };
 
 function handleJump() {
-  if (currentState === state.TUBOS || currentState === state.BOSS) {
+  if (currentState === state.READY) {
+    currentState = state.TUBOS;
+    startGame();
+  } else if (currentState === state.TUBOS || currentState === state.BOSS) {
     player.flap();
   }
 }
@@ -90,14 +96,12 @@ const pipes = {
 
   draw() {
     this.position.forEach(p => {
-      // Cigarro de cima — bituca pra baixo
       ctx.save();
       ctx.translate(p.x + this.width / 2, p.y + this.height / 2);
       ctx.rotate(Math.PI);
       ctx.drawImage(tuboCigarro, -this.width / 2, -this.height / 2, this.width, this.height);
       ctx.restore();
 
-      // Cigarro de baixo — bituca pra cima
       const bottomY = p.y + this.height + this.gap;
       ctx.drawImage(tuboCigarro, p.x, bottomY, this.width, this.height);
     });
@@ -131,7 +135,7 @@ const pipes = {
         pipes.reset();
         player.reset();
         bossFight.reset();
-        currentState = state.TUBOS;
+        currentState = state.READY;
       }
 
       if (p.x + this.width < 0) {
@@ -161,10 +165,16 @@ const bossFight = {
   cigarros: [],
 
   update() {
-    if (bossHp <= 0 || jamalHp <= 0) {
-      currentState = state.GAME_OVER;
-      return;
-    }
+ if (jamalHp <= 0) {
+  currentState = state.GAME_OVER;
+  return;
+}
+if (bossHp <= 0) {
+  currentState = state.VICTORY;
+  return;
+}
+
+
 
     this.y += this.dir * this.speed;
     if (this.y < 20 || this.y > canvas.height - this.height) {
@@ -176,14 +186,21 @@ const bossFight = {
     }
 
     this.bandeiras.forEach(b => b.x -= 3);
-    this.bandeiras = this.bandeiras.filter(b => {
-      const hit = b.x < player.x + player.width &&
-        b.x + 20 > player.x &&
-        b.y < player.y + player.height &&
-        b.y + 10 > player.y;
-      if (hit) jamalHp--;
-      return b.x > -20 && !hit;
-    });
+this.bandeiras = this.bandeiras.filter(b => {
+  const bw = 20;
+  const bh = 10;
+  const padding = 4;
+
+  const hit =
+    b.x + padding < player.x + player.width &&
+    b.x + bw - padding > player.x &&
+    b.y + padding < player.y + player.height &&
+    b.y + bh - padding > player.y;
+
+  if (hit) jamalHp--;
+  return b.x > -bw && !hit;
+});
+
 
     if (frames % 30 === 0) {
       this.cigarros.push({ x: player.x + player.width, y: player.y + player.height / 2 });
@@ -243,25 +260,65 @@ function draw() {
   ctx.textAlign = "center";
   ctx.fillText(tuboScore, canvas.width / 2, 40);
 
-  if (currentState === state.GAME_OVER) {
-    ctx.fillStyle = "red";
+  if (currentState === state.READY) {
+    ctx.fillStyle = "white";
     ctx.font = "16px 'Press Start 2P'";
-    ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
+    ctx.fillText("Clique para começar", canvas.width / 2, canvas.height / 2);
   }
+
+if (currentState === state.VICTORY) {
+  ctx.fillStyle = "lightgreen";
+  ctx.font = "16px 'Press Start 2P'";
+  ctx.fillText("VOCÊ GANHOU!", canvas.width / 2, canvas.height / 2 - 20);
+  ctx.fillText("OS LEGENDÁRIOS ACABARAM!", canvas.width / 2, canvas.height / 2 + 20);
+  retryButton.style.display = "block";
+} else if (currentState === state.GAME_OVER) {
+  ctx.fillStyle = "red";
+  ctx.font = "16px 'Press Start 2P'";
+  ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
+  retryButton.style.display = "block";
+} else {
+  retryButton.style.display = "none";
+}
+
 }
 
 function update() {
   if (currentState === state.TUBOS) pipes.update();
   else if (currentState === state.BOSS) bossFight.update();
 
-  player.update();
+  if (currentState !== state.READY) {
+    player.update();
+  }
+}
+
+function startGame() {
+  player.reset();
+  pipes.reset();
+  bossFight.reset();
+  frames = 0;
 }
 
 function loop() {
   update();
   draw();
   frames++;
-  requestAnimationFrame(loop);
+  requestAnimationFrame(loop); // roda continuamente
 }
 
-loop();
+
+bg.onload = () => {
+  draw();
+  loop(); // só inicia o loop quando a imagem está carregada
+};
+
+const retryButton = document.getElementById("retryButton");
+
+retryButton.addEventListener("click", () => {
+  player.reset();
+  pipes.reset();
+  bossFight.reset();
+  currentState = state.READY;
+  frames = 0;
+});
+
