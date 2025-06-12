@@ -67,7 +67,7 @@ Editar
 ├── style.css
 └── script.js
 ✨ Créditos
-Jogo desenvolvido por [Seu Nome]
+Jogo desenvolvido pela turma de Engenharia de Software Unicesumar: Arthur Andrade, Arthur Prates...
 
 Arte original de Jamal e Boss
 
