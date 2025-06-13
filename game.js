@@ -116,22 +116,39 @@ const tubos = {
     this.posicoes.forEach((tubo, i) => {
       tubo.x -= 2;
 
-      const px = jamal.x, py = jamal.y, pw = jamal.largura, ph = jamal.altura;
+      const margemXJamal = 6;
+      const margemYJamal = 6;
+
+      const px = jamal.x + margemXJamal;
+      const py = jamal.y + margemYJamal;
+      const pw = jamal.largura - 2 * margemXJamal;
+      const ph = jamal.altura - 2 * margemYJamal;
+
       const yTopo = tubo.y;
       const yBase = tubo.y + this.altura + this.espaco;
 
-      const margemX = 10;
-      const margemY = 8;
+      const margemXTubo = 30;
+      const margemYTubo = 36;
+
+      const jamalEsquerda = px;
+      const jamalDireita = px + pw;
+      const jamalTopo = py;
+      const jamalBase = py + ph;
+
+      const tuboEsquerda = tubo.x + margemXTubo;
+      const tuboDireita = tubo.x + this.largura - margemXTubo;
+      const tuboTopo = yTopo + margemYTubo;
+      const tuboBase = yBase + margemYTubo;
 
       const colisaoTopo =
-        px + pw - margemX > tubo.x &&
-        px + margemX < tubo.x + this.largura &&
-        py + margemY < yTopo + this.altura;
+        jamalDireita > tuboEsquerda &&
+        jamalEsquerda < tuboDireita &&
+        jamalTopo < tuboTopo + this.altura - 2 * margemYTubo;
 
       const colisaoBase =
-        px + pw - margemX > tubo.x &&
-        px + margemX < tubo.x + this.largura &&
-        py + ph - margemY > yBase;
+        jamalDireita > tuboEsquerda &&
+        jamalEsquerda < tuboDireita &&
+        jamalBase > tuboBase;
 
       if (colisaoTopo || colisaoBase) {
         this.reiniciar();
@@ -250,8 +267,11 @@ function desenharJogo() {
   contexto.clearRect(0, 0, canvas.width, canvas.height);
   contexto.drawImage(imagemFundo, 0, 0, canvas.width, canvas.height);
 
-  if (estadoAtual === estados.TUBOS) tubos.desenhar();
-  else if (estadoAtual === estados.CHEFAO) chefao.desenhar();
+  if (estadoAtual === estados.TUBOS) {
+    tubos.desenhar();
+  } else if (estadoAtual === estados.CHEFAO) {
+    chefao.desenhar();
+  }
 
   jamal.desenhar();
 
