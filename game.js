@@ -7,6 +7,7 @@ let tubosPassados = 0;
 let pontuacaoTubos = 0;
 const TUBOS_ATE_CHEFAO = 10;
 
+
 let vidaJamal = 4;
 let vidaChefao = 10;
 
@@ -15,10 +16,25 @@ const estados = {
   TUBOS: 1,
   CHEFAO: 2,
   DERROTA: 3,
-  VITORIA: 4
+  VITORIA: 4,
+  CUTSCENE_INICIO: 5,
+  CUTSCENE_BOSS: 6
 };
 
 let estadoAtual = estados.PRONTO;
+
+let cutsceneIndex = 0;
+const imagensCutsceneInicio = [
+  "img/cutscene1.png",
+  "img/cutscene2.png",
+  "img/cutscene3.png"
+];
+const imagensCutsceneBoss = [
+  "img/cutscene4.png",
+  "img/cutscene5.png",
+  "img/cutscene6.png"
+];
+const imagemCutscene = new Image();
 
 const imagemFundo = new Image();
 imagemFundo.src = "img/bg-battle.png";
@@ -28,6 +44,11 @@ const imagemTubo = new Image();
 imagemTubo.src = "img/tubo-cigarro.png";
 const imagemJamal = new Image();
 imagemJamal.src = "img/jamal.png";
+
+const somCaiu = new Audio("sounds/efeitos_caiu.wav");
+const somHit = new Audio("sounds/efeitos_hit.wav");
+const somPonto = new Audio("sounds/efeitos_ponto.wav");
+const somPulo = new Audio("sounds/efeitos_pulo.wav");
 
 const jamal = {
   x: 80,
@@ -72,12 +93,38 @@ const jamal = {
   }
 };
 
+
+function carregarImagemCutscene(src) {
+  cutsceneImagemCarregada = false;
+  imagemCutscene.onload = () => {
+    cutsceneImagemCarregada = true;
+  };
+  imagemCutscene.src = src;
+}
+
 function lidarComPulo() {
-  if (estadoAtual === estados.PRONTO) {
-    estadoAtual = estados.TUBOS;
-    iniciarJogo();
+  if (estadoAtual === estados.CUTSCENE_INICIO) {
+    cutsceneIndex++;
+    if (cutsceneIndex >= imagensCutsceneInicio.length) {
+      estadoAtual = estados.TUBOS;
+      iniciarJogo();
+    } else {
+      carregarImagemCutscene(imagensCutsceneInicio[cutsceneIndex]);
+    }
+  } else if (estadoAtual === estados.CUTSCENE_BOSS) {
+    cutsceneIndex++;
+    if (cutsceneIndex >= imagensCutsceneBoss.length) {
+      estadoAtual = estados.CHEFAO;
+    } else {
+      carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
+    }
   } else if (estadoAtual === estados.TUBOS || estadoAtual === estados.CHEFAO) {
+    somPulo.play();
     jamal.pular();
+  } else if (estadoAtual === estados.PRONTO) {
+    estadoAtual = estados.CUTSCENE_INICIO;
+    cutsceneIndex = 0;
+    carregarImagemCutscene(imagensCutsceneInicio[cutsceneIndex]);
   }
 }
 
@@ -110,7 +157,7 @@ const tubos = {
   atualizar() {
     if (tubosPassados < TUBOS_ATE_CHEFAO && quadros % 150 === 0) {
       let y = -Math.floor(Math.random() * 150);
-      this.posicoes.push({ x: canvas.width, y });
+      this.posicoes.push({ x: canvas.width, y, jaPontuado: false });
     }
 
     this.posicoes.forEach((tubo, i) => {
@@ -151,18 +198,33 @@ const tubos = {
         jamalBase > tuboBase;
 
       if (colisaoTopo || colisaoBase) {
+        somCaiu.currentTime = 0;
+        somCaiu.play();
         this.reiniciar();
         jamal.reiniciar();
         chefao.reiniciar();
         estadoAtual = estados.PRONTO;
       }
 
+      if (!tubo.jaPontuado && tubo.x + this.largura < jamal.x) {
+        tubo.jaPontuado = true;
+        pontuacaoTubos++;
+        tubosPassados++;
+
+        somPonto.currentTime = 0;
+        somPonto.play();
+
+        if (tubosPassados >= TUBOS_ATE_CHEFAO) {
+          estadoAtual = estados.CUTSCENE_BOSS;
+          cutsceneIndex = 0;
+          carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
+        }
+      }
+
       if (tubo.x + this.largura < 0) {
         this.posicoes.shift();
-        tubosPassados++;
-        pontuacaoTubos++;
-        if (tubosPassados >= TUBOS_ATE_CHEFAO) estadoAtual = estados.CHEFAO;
       }
+
     });
   },
 
@@ -214,7 +276,11 @@ const chefao = {
         b.y + margem < jamal.y + jamal.altura &&
         b.y + bh - margem > jamal.y;
 
-      if (acerto) vidaJamal--;
+      if (acerto) {
+        somHit.currentTime = 0;
+        somHit.play();
+        vidaJamal--;
+      }
       return b.x > -bw && !acerto;
     });
 
@@ -267,11 +333,13 @@ function desenharJogo() {
   contexto.clearRect(0, 0, canvas.width, canvas.height);
   contexto.drawImage(imagemFundo, 0, 0, canvas.width, canvas.height);
 
-  if (estadoAtual === estados.TUBOS) {
-    tubos.desenhar();
-  } else if (estadoAtual === estados.CHEFAO) {
-    chefao.desenhar();
+  if (estadoAtual === estados.CUTSCENE_INICIO || estadoAtual === estados.CUTSCENE_BOSS) {
+    desenharCutscene();
+    return;
   }
+
+  if (estadoAtual === estados.TUBOS) tubos.desenhar();
+  else if (estadoAtual === estados.CHEFAO) chefao.desenhar();
 
   jamal.desenhar();
 
@@ -302,11 +370,22 @@ function desenharJogo() {
   }
 }
 
+function desenharCutscene() {
+  if (!cutsceneImagemCarregada) {
+    contexto.fillStyle = "black";
+    contexto.fillRect(0, 0, canvas.width, canvas.height);
+    return;
+  }
+  contexto.drawImage(imagemCutscene, 0, 0, canvas.width, canvas.height);
+}
+
 function atualizarJogo() {
   if (estadoAtual === estados.TUBOS) tubos.atualizar();
   else if (estadoAtual === estados.CHEFAO) chefao.atualizar();
 
-  if (estadoAtual !== estados.PRONTO) jamal.atualizar();
+  if (estadoAtual === estados.TUBOS || estadoAtual === estados.CHEFAO) {
+    jamal.atualizar();
+  }
 }
 
 function iniciarJogo() {
@@ -317,10 +396,14 @@ function iniciarJogo() {
 }
 
 function loopDoJogo() {
-  atualizarJogo();
-  desenharJogo();
-  quadros++;
-  requestAnimationFrame(loopDoJogo);
+  if (estadoAtual !== estados.DERROTA && estadoAtual !== estados.VITORIA) {
+    atualizarJogo();
+    desenharJogo();
+    quadros++;
+    requestAnimationFrame(loopDoJogo);
+  } else {
+    desenharJogo();
+  }
 }
 
 imagemFundo.onload = () => {
@@ -335,4 +418,5 @@ botaoReiniciar.addEventListener("click", () => {
   chefao.reiniciar();
   estadoAtual = estados.PRONTO;
   quadros = 0;
+  loopDoJogo();
 });
