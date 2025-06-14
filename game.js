@@ -35,6 +35,13 @@ const imagensCutsceneBoss = [
   "img/cutscene5.png",
   "img/cutscene6.png"
 ];
+
+// Música de fundo
+const musicaFundo = new Audio("music/musicajogo.mp3");
+musicaFundo.loop = true;
+musicaFundo.volume = 0.3; // Volume entre 0 e 1
+
+
 const imagemCutscene = new Image();
 
 const imagemFundo = new Image();
@@ -68,12 +75,15 @@ const jamal = {
     this.velocidade += this.gravidade;
     this.y += this.velocidade;
 
- if ((estadoAtual === estados.TUBOS || estadoAtual === estados.CHEFAO) && this.y + this.altura >= canvas.height) {
+if ((estadoAtual === estados.TUBOS || estadoAtual === estados.CHEFAO) && this.y + this.altura >= canvas.height) {
   this.reiniciar();
   tubos.reiniciar();
   chefao.reiniciar();
   estadoAtual = estados.PRONTO;
+  pararMusicaFundo();
 }
+
+
 
 
     if (this.y <= 0) {
@@ -95,6 +105,11 @@ const jamal = {
   }
 };
 
+function pararMusicaFundo() {
+  musicaFundo.pause();
+  musicaFundo.currentTime = 0;
+}
+
 
 function carregarImagemCutscene(src) {
   cutsceneImagemCarregada = false;
@@ -110,6 +125,7 @@ function lidarComPulo() {
     if (cutsceneIndex >= imagensCutsceneInicio.length) {
       estadoAtual = estados.TUBOS;
       iniciarJogo();
+      musicaFundo.play();
     } else {
       carregarImagemCutscene(imagensCutsceneInicio[cutsceneIndex]);
     }
@@ -123,12 +139,17 @@ function lidarComPulo() {
   } else if (estadoAtual === estados.TUBOS || estadoAtual === estados.CHEFAO) {
     somPulo.play();
     jamal.pular();
-  } else if (estadoAtual === estados.PRONTO) {
-    estadoAtual = estados.CUTSCENE_INICIO;
-    cutsceneIndex = 0;
-    carregarImagemCutscene(imagensCutsceneInicio[cutsceneIndex]);
-  }
+  }  else if (estadoAtual === estados.PRONTO) {
+  estadoAtual = estados.CUTSCENE_INICIO;
+  cutsceneIndex = 0;
+  carregarImagemCutscene(imagensCutsceneInicio[cutsceneIndex]);
+  
+  musicaFundo.pause();          // Garante que pare antes de reiniciar
+  musicaFundo.currentTime = 0;  // Reinicia do começo
 }
+
+  }
+
 
 canvas.addEventListener("click", lidarComPulo);
 document.addEventListener("keydown", (e) => {
@@ -357,16 +378,21 @@ function desenharJogo() {
   }
 
   if (estadoAtual === estados.VITORIA) {
-    contexto.fillStyle = "lightgreen";
-    contexto.font = "16px 'Press Start 2P'";
-    contexto.fillText("VOCÊ GANHOU!", canvas.width / 2, canvas.height / 2 - 20);
-    contexto.fillText("OS LEGENDÁRIOS ACABARAM!", canvas.width / 2, canvas.height / 2 + 20);
-    botaoReiniciar.style.display = "block";
-  } else if (estadoAtual === estados.DERROTA) {
+  contexto.fillStyle = "lightgreen";
+  contexto.font = "16px 'Press Start 2P'";
+  contexto.fillText("VOCÊ GANHOU!", canvas.width / 2, canvas.height / 2 - 20);
+  contexto.fillText("OS LEGENDÁRIOS ACABARAM!", canvas.width / 2, canvas.height / 2 + 20);
+  botaoReiniciar.style.display = "block";
+  musicaFundo.pause();
+  musicaFundo.currentTime = 0;
+}
+ else if (estadoAtual === estados.DERROTA) {
     contexto.fillStyle = "red";
     contexto.font = "16px 'Press Start 2P'";
     contexto.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
     botaoReiniciar.style.display = "block";
+    musicaFundo.pause();
+  musicaFundo.currentTime = 0;
   } else {
     botaoReiniciar.style.display = "none";
   }
@@ -420,5 +446,6 @@ botaoReiniciar.addEventListener("click", () => {
   chefao.reiniciar();
   estadoAtual = estados.PRONTO;
   quadros = 0;
+  pararMusicaFundo();
   loopDoJogo();
 });
