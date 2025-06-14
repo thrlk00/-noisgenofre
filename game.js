@@ -8,6 +8,7 @@ let pontuacaoTubos = 0;
 const TUBOS_ATE_CHEFAO = 10;
 
 
+
 let vidaJamal = 4;
 let vidaChefao = 10;
 
@@ -67,12 +68,13 @@ const jamal = {
     this.velocidade += this.gravidade;
     this.y += this.velocidade;
 
-    if (estadoAtual === estados.TUBOS && this.y + this.altura >= canvas.height) {
-      this.reiniciar();
-      tubos.reiniciar();
-      chefao.reiniciar();
-      estadoAtual = estados.PRONTO;
-    }
+ if ((estadoAtual === estados.TUBOS || estadoAtual === estados.CHEFAO) && this.y + this.altura >= canvas.height) {
+  this.reiniciar();
+  tubos.reiniciar();
+  chefao.reiniciar();
+  estadoAtual = estados.PRONTO;
+}
+
 
     if (this.y <= 0) {
       this.y = 0;
