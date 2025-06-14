@@ -39,7 +39,7 @@ const imagensCutsceneBoss = [
 // Música de fundo
 const musicaFundo = new Audio("music/musicajogo.mp3");
 musicaFundo.loop = true;
-musicaFundo.volume = 0.3; // Volume entre 0 e 1
+musicaFundo.volume = 0.5; // Volume entre 0 e 1
 
 
 const imagemCutscene = new Image();
@@ -63,9 +63,9 @@ const jamal = {
   y: 200,
   largura: 32,
   altura: 32,
-  gravidade: 0.10,
+  gravidade: 0.18,
   velocidade: 1,
-  pulo: -3.6,
+  pulo: -3.2,
 
   pular() {
     this.velocidade = this.pulo;
@@ -162,7 +162,7 @@ const tubos = {
   posicoes: [],
   largura: 96,
   altura: 300,
-  espaco: 160,
+  espaco: 130,
 
   desenhar() {
     this.posicoes.forEach(tubo => {
@@ -184,7 +184,7 @@ const tubos = {
     }
 
     this.posicoes.forEach((tubo, i) => {
-      tubo.x -= 2;
+      tubo.x -= 3;
 
       const margemXJamal = 6;
       const margemYJamal = 6;
@@ -302,7 +302,7 @@ const chefao = {
       if (acerto) {
         somHit.currentTime = 0;
         somHit.play();
-        vidaJamal--;
+        vidaJamal -= 2;
       }
       return b.x > -bw && !acerto;
     });
