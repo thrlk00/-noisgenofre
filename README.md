@@ -30,10 +30,9 @@ Se você for atingido, perde vida.
 Jamal pode disparar cigarros clicando para acertar o boss.
 
 🏁 Vitória
-<div align="center"> <img src="img/tutorial-vitoria.png" alt="Tela de vitória" width="500"/> </div>
+<div align="center"> <img src="img/cutscene5.png" alt="Tela de vitória" width="500"/> </div>
 Ao derrotar o boss, você vence o jogo!
 
-Aparece a mensagem: "VOCÊ GANHOU! OS LEGENDÁRIOS ACABARAM!"
 
 🧪 Tecnologias usadas
 HTML5 Canvas
