@@ -52,6 +52,9 @@ const imagemJamal = new Image();
 imagemJamal.src = "img/jamal.png";
 const imagemTelaMorteBoss = new Image();
 imagemTelaMorteBoss.src = "img/telamorteboss.png";
+const imagemMenu = new Image();
+imagemMenu.src = "img/menu.png";
+
 
 const somCaiu = new Audio("sounds/efeitos_caiu.wav");
 const somHit = new Audio("sounds/efeitos_hit.wav");
@@ -171,11 +174,40 @@ function lidarComPulo() {
   }
 }
 
+const botaoStart = {
+  x: canvas.width / 2 - 85, // centralizado
+  y: canvas.height - 100,   // perto da parte inferior
+  largura: 170,
+  altura: 50
+};
+
+
 // === Eventos de clique e teclado ===
-canvas.addEventListener("click", lidarComPulo);
-document.addEventListener("keydown", (e) => {
-  if (e.code === "Space") lidarComPulo();
+canvas.addEventListener("click", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const clickX = e.clientX - rect.left;
+  const clickY = e.clientY - rect.top;
+
+  // Se estiver no estado PRONTO e clicou no botão Start
+  if (estadoAtual === estados.PRONTO) {
+    if (
+      clickX >= botaoStart.x &&
+      clickX <= botaoStart.x + botaoStart.largura &&
+      clickY >= botaoStart.y &&
+      clickY <= botaoStart.y + botaoStart.altura
+    ) {
+      estadoAtual = estados.CUTSCENE_INICIO;
+      cutsceneIndex = 0;
+      carregarImagemCutscene(imagensCutsceneInicio[cutsceneIndex]);
+      musicaFundo.pause();
+      musicaFundo.currentTime = 0;
+      return;
+    }
+  }
+
+  lidarComPulo();
 });
+
 
 // === Tubos (obstáculos do jogo) ===
 const tubos = {
@@ -393,8 +425,17 @@ function desenharJogo() {
   contexto.fillText(pontuacaoTubos, canvas.width / 2, 40);
 
   if (estadoAtual === estados.PRONTO) {
-    contexto.fillText("Clique para começar", canvas.width / 2, canvas.height / 2);
-  }
+    contexto.fillStyle = "#FF6600"; // cor laranja
+contexto.fillRect(botaoStart.x, botaoStart.y, botaoStart.largura, botaoStart.altura);
+
+contexto.fillStyle = "white";
+contexto.font = "16px 'Press Start 2P'";
+contexto.textAlign = "center";
+contexto.fillText("START", canvas.width / 2, botaoStart.y + 32);
+
+  contexto.drawImage(imagemMenu, 0, 0, canvas.width, canvas.height);
+}
+
 
   if (estadoAtual === estados.VITORIA || estadoAtual === estados.DERROTA) {
     botaoReiniciar.style.display = "block";
