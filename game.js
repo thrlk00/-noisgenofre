@@ -145,21 +145,21 @@ function lidarComPulo() {
     } else {
       carregarImagemCutscene(imagensCutsceneInicio[cutsceneIndex]);
     }
-  }  else if (estadoAtual === estados.CUTSCENE_BOSS) {
-  if (!cutscenePodeAvancar) return;
+  } else if (estadoAtual === estados.CUTSCENE_BOSS) {
+    if (!cutscenePodeAvancar) return;
 
-  cutsceneIndex++;
-  if (cutsceneIndex >= imagensCutsceneBoss.length) {
-    estadoAtual = estados.CHEFAO;
+    cutsceneIndex++;
+    if (cutsceneIndex >= imagensCutsceneBoss.length) {
+      estadoAtual = estados.CHEFAO;
 
-    // Desativa a gravidade por 3 segundos
-    gravidadeSuspensa = true;
-    setTimeout(() => {
-      gravidadeSuspensa = false;
-    }, 500);
-  } else {
-    carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
-  }
+      // Desativa a gravidade por 3 segundos
+      gravidadeSuspensa = true;
+      setTimeout(() => {
+        gravidadeSuspensa = false;
+      }, 500);
+    } else {
+      carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
+    }
 
   } else if (estadoAtual === estados.TUBOS || estadoAtual === estados.CHEFAO) {
     somPulo.play();
@@ -247,13 +247,13 @@ const tubos = {
         // Início da cutscene do chefe
         if (tubosPassados >= TUBOS_ATE_CHEFAO) {
           estadoAtual = estados.CUTSCENE_BOSS;
-cutsceneIndex = 0;
-cutscenePodeAvancar = false;
-carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
+          cutsceneIndex = 0;
+          cutscenePodeAvancar = false;
+          carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
 
-setTimeout(() => {
-  cutscenePodeAvancar = true;
-}, 5000);
+          setTimeout(() => {
+            cutscenePodeAvancar = true;
+          }, 5000);
 
         }
       }
