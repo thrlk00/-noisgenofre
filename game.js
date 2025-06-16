@@ -9,8 +9,8 @@ let pontuacaoTubos = 0;
 const TUBOS_ATE_CHEFAO = 10;
 let cutsceneImagemCarregada = false;
 let mortePorChefao = false;
-let vidaJamal = 4;
-let vidaChefao = 10;
+let vidaJamal = 12;
+let vidaChefao = 30;
 let jogoRodando = false;
 let cutscenePodeAvancar = false;
 let gravidadeSuspensa = false;
@@ -67,9 +67,9 @@ const jamal = {
   y: 200,
   largura: 32,
   altura: 32,
-  gravidade: 0.25,
-  velocidade: 10,
-  pulo: -4.2,
+  gravidade: 0.35,
+  velocidade: 30,
+  pulo: -6.2,
 
   pular() {
     this.velocidade = this.pulo;
@@ -101,7 +101,7 @@ const jamal = {
     this.velocidade = 0;
     pontuacaoTubos = 0;
     vidaJamal = 4;
-    vidaChefao = 10;
+    vidaChefao = 15;
   }
 };
 
@@ -117,7 +117,7 @@ function gerenciarMusica() {
     estadoAtual === estados.CUTSCENE_BOSS ||
     estadoAtual === estados.CUTSCENE_VITORIA ||
     estadoAtual === estados.CHEFAO ||
-    estadoAtual === estados.DERROTA 
+    estadoAtual === estados.DERROTA
   ) {
     if (!musicaFundo.paused) musicaFundo.pause();
   } else if (musicaFundo.paused && estadoAtual === estados.TUBOS) {
@@ -308,8 +308,8 @@ const chefao = {
   y: 80,
   largura: 180,
   altura: 180,
-  direcao: 1,
-  velocidade: 5,
+  direcao: 4,
+  velocidade: 8,
   bandeiras: [],
   cigarros: [],
 
@@ -336,7 +336,7 @@ const chefao = {
     }
 
     // Disparo de bandeiras (ataque inimigo)
-    if (quadros % 30 === 0) {
+    if (quadros % 20 === 0) {
       this.bandeiras.push({
         x: this.x + this.largura / 2,
         y: this.y + this.altura / 2
@@ -426,15 +426,15 @@ function desenharJogo() {
 
   if (estadoAtual === estados.PRONTO) {
     contexto.fillStyle = "#FF6600"; // cor laranja
-contexto.fillRect(botaoStart.x, botaoStart.y, botaoStart.largura, botaoStart.altura);
+    contexto.fillRect(botaoStart.x, botaoStart.y, botaoStart.largura, botaoStart.altura);
 
-contexto.fillStyle = "white";
-contexto.font = "16px 'Press Start 2P'";
-contexto.textAlign = "center";
-contexto.fillText("START", canvas.width / 2, botaoStart.y + 32);
+    contexto.fillStyle = "white";
+    contexto.font = "16px 'Press Start 2P'";
+    contexto.textAlign = "center";
+    contexto.fillText("START", canvas.width / 2, botaoStart.y + 32);
 
-  contexto.drawImage(imagemMenu, 0, 0, canvas.width, canvas.height);
-}
+    contexto.drawImage(imagemMenu, 0, 0, canvas.width, canvas.height);
+  }
 
 
   if (estadoAtual === estados.VITORIA || estadoAtual === estados.DERROTA) {
