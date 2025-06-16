@@ -11,6 +11,13 @@ let cutsceneImagemCarregada = false;
 let mortePorChefao = false;
 let vidaJamal = 12;
 let vidaChefao = 30;
+let chefaoEscudo = false;
+let escudoAtivo = false;
+let faseBoss = 1;
+let chefaoIntervaloDisparo = 20;
+let chefaoDisparoTriplo = false;
+let tempoEscudoAtivo = 0;
+let escudoDuracao = 3000;
 let jogoRodando = false;
 let cutscenePodeAvancar = false;
 let gravidadeSuspensa = false;
@@ -54,6 +61,10 @@ const imagemTelaMorteBoss = new Image();
 imagemTelaMorteBoss.src = "img/telamorteboss.png";
 const imagemMenu = new Image();
 imagemMenu.src = "img/menu.png";
+const ataqueBoss = new Image();
+ataqueBoss.src = "img/bandeira.png"
+const ataqueJamal = new Image();
+ataqueJamal.src = "img/cigarro2.png"
 
 
 const somCaiu = new Audio("sounds/efeitos_caiu.wav");
@@ -205,6 +216,33 @@ canvas.addEventListener("click", (e) => {
     }
   }
 
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "F9") { // Verifica se a tecla pressionada é F9
+        // Força o jogo a ir direto para a cutscene da boss fight
+        estadoAtual = estados.CUTSCENE_BOSS;
+        cutsceneIndex = 0; // Reinicia o índice da cutscene para a do boss
+        cutscenePodeAvancar = false; // Garante que não avança imediatamente se a cutscene do boss tiver um delay
+
+        // Carrega a primeira imagem da cutscene do boss
+        // Assumindo que imagensCutsceneBoss tem pelo menos uma imagem
+        carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
+
+        // Suspende temporariamente a gravidade como na transição normal
+        // Isso é importante para Jamal não cair durante a transição
+        gravidadeSuspensa = true;
+        setTimeout(() => {
+            gravidadeSuspensa = false;
+            cutscenePodeAvancar = true; // Permite avançar a cutscene após o delay
+        }, 500); // Meio segundo de gravidade suspensa, ajuste se necessário
+
+        // Reinicia elementos do jogo para evitar bugs na transição
+        jamal.reiniciar();
+        tubos.reiniciar(); // Limpa os tubos existentes
+        chefao.reiniciar(); // Garante que o chefe comece do zero
+        pararMusicaFundo(); // Para a música dos tubos se estiver tocando
+    }
+});
+
   lidarComPulo();
 });
 
@@ -321,6 +359,30 @@ const chefao = {
       return;
     }
 
+    if (vidaChefao <= 20 && faseBoss === 1) {
+        faseBoss = 2;
+        this.velocidade += 2;
+        chefaoIntervaloDisparo = 15;
+      }
+      if (vidaChefao <= 10 && faseBoss === 2) {
+        faseBoss = 3;
+        this.velocidade += 2;
+        chefaoIntervaloDisparo = 10;
+        chefaoDisparoTriplo = true;
+      }
+
+      // Ativa escudo temporário ao chegar na metade da vida
+      if (!chefaoEscudo && vidaChefao <= 15) {
+        chefaoEscudo = true;
+        escudoAtivo = true;
+        tempoEscudoAtivo = Date.now();
+      }
+
+      // Desativa escudo após tempo
+      if (escudoAtivo && Date.now() - tempoEscudoAtivo > escudoDuracao) {
+          escudoAtivo = false;
+    } 
+
     // Vitória se vida do chefe acabar
     if (vidaChefao <= 0) {
       estadoAtual = estados.VITORIA;
@@ -336,12 +398,23 @@ const chefao = {
     }
 
     // Disparo de bandeiras (ataque inimigo)
-    if (quadros % 20 === 0) {
-      this.bandeiras.push({
-        x: this.x + this.largura / 2,
-        y: this.y + this.altura / 2
-      });
-    }
+    if (quadros % chefaoIntervaloDisparo === 0) {
+  this.bandeiras.push({
+    x: this.x + this.largura / 2,
+    y: this.y + this.altura / 2
+  });
+
+  if (chefaoDisparoTriplo) {
+    this.bandeiras.push({
+      x: this.x + this.largura / 2,
+      y: this.y + this.altura / 2 - 20
+    });
+    this.bandeiras.push({
+      x: this.x + this.largura / 2,
+      y: this.y + this.altura / 2 + 20
+    });
+  }
+}
 
     // Atualização de bandeiras
     this.bandeiras.forEach(b => b.x -= 3);
@@ -371,11 +444,22 @@ const chefao = {
     // Atualização de cigarros
     this.cigarros.forEach(c => c.x += 5);
     this.cigarros = this.cigarros.filter(c => {
-      const acerto = c.x + 16 >= this.x && c.x <= this.x + this.largura && c.y >= this.y && c.y <= this.y + this.altura;
-      if (acerto) vidaChefao--;
-      return c.x < canvas.width + 20 && !acerto;
-    });
+  const acerto = c.x + 16 >= this.x && c.x <= this.x + this.largura && c.y >= this.y && c.y <= this.y + this.altura;
+
+  if (acerto && !escudoAtivo) {
+    vidaChefao--;
+  }
+
+  return c.x < canvas.width + 20 && (!acerto || escudoAtivo);
+});
+
+  if (faseBoss === 3 && quadros % 300 === 0) {
+  this.y = Math.random() * (canvas.height - this.altura - 40);
+}
+
   },
+
+  
 
   desenhar() {
     contexto.save();
@@ -383,11 +467,13 @@ const chefao = {
     contexto.drawImage(imagemChefao, -this.x - this.largura, this.y, this.largura, this.altura);
     contexto.restore();
 
-    contexto.fillStyle = "orange";
-    this.bandeiras.forEach(b => contexto.fillRect(b.x, b.y, 20, 10));
+  this.bandeiras.forEach(b => {
+    contexto.drawImage(ataqueBoss, b.x, b.y, 40, 20);
+  });
 
-    contexto.fillStyle = "white";
-    this.cigarros.forEach(c => contexto.fillRect(c.x, c.y, 16, 4));
+  this.cigarros.forEach(b => {
+    contexto.drawImage(ataqueJamal, b.x, b.y, 48, 16);
+  });
 
     contexto.fillStyle = "red";
     contexto.fillRect(canvas.width - 120, 20, vidaChefao * 10, 10);
@@ -401,6 +487,12 @@ const chefao = {
     this.cigarros = [];
     this.y = 80;
     this.direcao = 1;
+    faseBoss = 1;
+    chefaoIntervaloDisparo = 20;
+    chefaoDisparoTriplo = false;
+    chefaoEscudo = false;
+    escudoAtivo = false;
+    tempoEscudoAtivo = 0;
   }
 };
 
