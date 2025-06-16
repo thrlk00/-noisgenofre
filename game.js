@@ -7,8 +7,8 @@ let tubosPassados = 0;
 let pontuacaoTubos = 0;
 const TUBOS_ATE_CHEFAO = 10;
 
-
-
+let naFaseDoBoss = false;
+let mortePorChefao = false;
 let vidaJamal = 4;
 let vidaChefao = 10;
 
@@ -19,7 +19,8 @@ const estados = {
   DERROTA: 3,
   VITORIA: 4,
   CUTSCENE_INICIO: 5,
-  CUTSCENE_BOSS: 6
+  CUTSCENE_BOSS: 6,
+  CUTSCENE_VITORIA: 7
 };
 
 let estadoAtual = estados.PRONTO;
@@ -31,10 +32,10 @@ const imagensCutsceneInicio = [
   "img/cutscene3.png"
 ];
 const imagensCutsceneBoss = [
-  "img/cutscene4.png",
-  "img/cutscene5.png",
-  "img/cutscene6.png"
+  "img/cutscene4.png"
 ];
+
+const imagensCutsceneVictoria = [ "img/cutscene5.png" ]
 
 // Música de fundo
 const musicaFundo = new Audio("music/musicajogo.mp3");
@@ -52,6 +53,9 @@ const imagemTubo = new Image();
 imagemTubo.src = "img/tubo-cigarro.png";
 const imagemJamal = new Image();
 imagemJamal.src = "img/jamal.png";
+const imagemTelaMorteBoss = new Image();
+imagemTelaMorteBoss.src = "img/telamorteboss.png";
+
 
 const somCaiu = new Audio("sounds/efeitos_caiu.wav");
 const somHit = new Audio("sounds/efeitos_hit.wav");
@@ -76,12 +80,13 @@ const jamal = {
     this.y += this.velocidade;
 
 if ((estadoAtual === estados.TUBOS || estadoAtual === estados.CHEFAO) && this.y + this.altura >= canvas.height) {
-  this.reiniciar();
-  tubos.reiniciar();
-  chefao.reiniciar();
-  estadoAtual = estados.PRONTO;
+  if (estadoAtual === estados.CHEFAO) {
+    mortePorChefao = true;
+  }
+  estadoAtual = estados.DERROTA;
   pararMusicaFundo();
 }
+
 
 
 
@@ -270,13 +275,19 @@ const chefao = {
 
   atualizar() {
     if (vidaJamal <= 0) {
-      estadoAtual = estados.DERROTA;
-      return;
-    }
+  mortePorChefao = true;
+  estadoAtual = estados.DERROTA;
+  return;
+}
+
     if (vidaChefao <= 0) {
-      estadoAtual = estados.VITORIA;
-      return;
-    }
+  estadoAtual = estados.VITORIA;
+  cutsceneIndex = 0;
+  carregarImagemCutscene(imagensCutsceneVictoria[0]);
+  return;
+}
+
+
 
     this.y += this.direcao * this.velocidade;
     if (this.y < 20 || this.y > canvas.height - this.altura) {
@@ -356,10 +367,15 @@ function desenharJogo() {
   contexto.clearRect(0, 0, canvas.width, canvas.height);
   contexto.drawImage(imagemFundo, 0, 0, canvas.width, canvas.height);
 
-  if (estadoAtual === estados.CUTSCENE_INICIO || estadoAtual === estados.CUTSCENE_BOSS) {
-    desenharCutscene();
-    return;
-  }
+ if (
+  estadoAtual === estados.CUTSCENE_INICIO || 
+  estadoAtual === estados.CUTSCENE_BOSS || 
+  estadoAtual === estados.CUTSCENE_VITORIA
+) {
+  desenharCutscene();
+  return;
+}
+
 
   if (estadoAtual === estados.TUBOS) tubos.desenhar();
   else if (estadoAtual === estados.CHEFAO) chefao.desenhar();
@@ -378,22 +394,25 @@ function desenharJogo() {
   }
 
   if (estadoAtual === estados.VITORIA) {
-  contexto.fillStyle = "lightgreen";
-  contexto.font = "16px 'Press Start 2P'";
-  contexto.fillText("VOCÊ GANHOU!", canvas.width / 2, canvas.height / 2 - 20);
-  contexto.fillText("OS LEGENDÁRIOS ACABARAM!", canvas.width / 2, canvas.height / 2 + 20);
+  desenharCutscene();  // Vai desenhar a imagem da cutscene 5
+  botaoReiniciar.style.display = "block";  // Mostra o botão
+  musicaFundo.pause();
+  musicaFundo.currentTime = 0;
+}
+
+ else if (estadoAtual === estados.DERROTA) {
+  if (mortePorChefao) {
+    contexto.drawImage(imagemTelaMorteBoss, 0, 0, canvas.width, canvas.height);
+  } else {
+    contexto.fillStyle = "red";
+    contexto.font = "16px 'Press Start 2P'";
+    contexto.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
+  }
   botaoReiniciar.style.display = "block";
   musicaFundo.pause();
   musicaFundo.currentTime = 0;
 }
- else if (estadoAtual === estados.DERROTA) {
-    contexto.fillStyle = "red";
-    contexto.font = "16px 'Press Start 2P'";
-    contexto.fillText("GAME OVER", canvas.width / 2, canvas.height / 2);
-    botaoReiniciar.style.display = "block";
-    musicaFundo.pause();
-  musicaFundo.currentTime = 0;
-  } else {
+ else {
     botaoReiniciar.style.display = "none";
   }
 }
@@ -424,15 +443,12 @@ function iniciarJogo() {
 }
 
 function loopDoJogo() {
-  if (estadoAtual !== estados.DERROTA && estadoAtual !== estados.VITORIA) {
-    atualizarJogo();
-    desenharJogo();
-    quadros++;
-    requestAnimationFrame(loopDoJogo);
-  } else {
-    desenharJogo();
-  }
+  atualizarJogo();
+  desenharJogo();
+  quadros++;
+  requestAnimationFrame(loopDoJogo);
 }
+
 
 imagemFundo.onload = () => {
   desenharJogo();
@@ -441,6 +457,7 @@ imagemFundo.onload = () => {
 
 const botaoReiniciar = document.getElementById("retryButton");
 botaoReiniciar.addEventListener("click", () => {
+  mortePorChefao = false;
   jamal.reiniciar();
   tubos.reiniciar();
   chefao.reiniciar();
