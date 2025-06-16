@@ -49,7 +49,7 @@ cd jogo-jamal<br>
 Abra o arquivo index.html em seu navegador.
 
 ✨ Créditos
-Jogo desenvolvido pela turma de Engenharia de Software Unicesumar: Arthur Andrade, Arthur Prates...
+Jogo desenvolvido pela turma de Engenharia de Software Unicesumar: Arthur Andrade, Arthur Prates, Vitor Hugo Messias, Yuji Yasunaka, Murilo Lima e João Paulo Cirilo.
 
 Arte original de Jamal e Boss
 
