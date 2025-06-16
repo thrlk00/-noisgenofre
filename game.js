@@ -76,14 +76,12 @@ const jamal = {
     if (gravidadeSuspensa) return;
     this.velocidade += this.gravidade;
     this.y += this.velocidade;
-
     // Verifica se caiu no chão (perdeu)
     if ((estadoAtual === estados.TUBOS || estadoAtual === estados.CHEFAO) && this.y + this.altura >= canvas.height) {
       if (estadoAtual === estados.CHEFAO) mortePorChefao = true;
       estadoAtual = estados.DERROTA;
       pararMusicaFundo();
     }
-
     // Limita Jamal para não ultrapassar o topo da tela
     if (this.y <= 0) {
       this.y = 0;
@@ -116,7 +114,7 @@ function gerenciarMusica() {
     estadoAtual === estados.CUTSCENE_BOSS ||
     estadoAtual === estados.CUTSCENE_VITORIA ||
     estadoAtual === estados.CHEFAO ||
-    estadoAtual === estados.DERROTA // <--- impede tocar se morreu!
+    estadoAtual === estados.DERROTA 
   ) {
     if (!musicaFundo.paused) musicaFundo.pause();
   } else if (musicaFundo.paused && estadoAtual === estados.TUBOS) {
@@ -471,7 +469,7 @@ botaoReiniciar.addEventListener("click", () => {
   chefao.reiniciar();
   estadoAtual = estados.PRONTO;
   quadros = 0;
-  pararMusicaFundo(); // <-- garante que a música pare aqui também
+  pararMusicaFundo();
 
   if (!jogoRodando) {
     jogoRodando = true;
