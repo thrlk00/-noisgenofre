@@ -229,7 +229,7 @@ const tubos = {
   posicoes: [],
   largura: 126,
   altura: 400,
-  espaco: 40,
+  espaco: 50,
 
   desenhar() {
     this.posicoes.forEach(tubo => {
