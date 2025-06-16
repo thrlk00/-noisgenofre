@@ -12,6 +12,9 @@ let mortePorChefao = false;
 let vidaJamal = 4;
 let vidaChefao = 10;
 let jogoRodando = false;
+let cutscenePodeAvancar = false;
+let gravidadeSuspensa = false;
+
 
 // === Definição dos estados possíveis do jogo ===
 const estados = {
@@ -61,15 +64,16 @@ const jamal = {
   y: 200,
   largura: 32,
   altura: 32,
-  gravidade: 0.18,
-  velocidade: 1,
-  pulo: -3.2,
+  gravidade: 0.25,
+  velocidade: 10,
+  pulo: -4.2,
 
   pular() {
     this.velocidade = this.pulo;
   },
 
   atualizar() {
+    if (gravidadeSuspensa) return;
     this.velocidade += this.gravidade;
     this.y += this.velocidade;
 
@@ -111,13 +115,15 @@ function gerenciarMusica() {
     estadoAtual === estados.CUTSCENE_INICIO ||
     estadoAtual === estados.CUTSCENE_BOSS ||
     estadoAtual === estados.CUTSCENE_VITORIA ||
-    estadoAtual === estados.CHEFAO
+    estadoAtual === estados.CHEFAO ||
+    estadoAtual === estados.DERROTA // <--- impede tocar se morreu!
   ) {
     if (!musicaFundo.paused) musicaFundo.pause();
   } else if (musicaFundo.paused && estadoAtual === estados.TUBOS) {
     musicaFundo.play();
   }
 }
+
 
 // === Controle de imagens de cutscene ===
 function carregarImagemCutscene(src) {
@@ -139,13 +145,22 @@ function lidarComPulo() {
     } else {
       carregarImagemCutscene(imagensCutsceneInicio[cutsceneIndex]);
     }
-  } else if (estadoAtual === estados.CUTSCENE_BOSS) {
-    cutsceneIndex++;
-    if (cutsceneIndex >= imagensCutsceneBoss.length) {
-      estadoAtual = estados.CHEFAO;
-    } else {
-      carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
-    }
+  }  else if (estadoAtual === estados.CUTSCENE_BOSS) {
+  if (!cutscenePodeAvancar) return;
+
+  cutsceneIndex++;
+  if (cutsceneIndex >= imagensCutsceneBoss.length) {
+    estadoAtual = estados.CHEFAO;
+
+    // Desativa a gravidade por 3 segundos
+    gravidadeSuspensa = true;
+    setTimeout(() => {
+      gravidadeSuspensa = false;
+    }, 500);
+  } else {
+    carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
+  }
+
   } else if (estadoAtual === estados.TUBOS || estadoAtual === estados.CHEFAO) {
     somPulo.play();
     jamal.pular();
@@ -169,7 +184,7 @@ const tubos = {
   posicoes: [],
   largura: 96,
   altura: 300,
-  espaco: 130,
+  espaco: 60,
 
   desenhar() {
     this.posicoes.forEach(tubo => {
@@ -218,6 +233,7 @@ const tubos = {
         jamal.reiniciar();
         chefao.reiniciar();
         estadoAtual = estados.PRONTO;
+        pararMusicaFundo();
       }
 
       // Contagem de pontos
@@ -231,8 +247,14 @@ const tubos = {
         // Início da cutscene do chefe
         if (tubosPassados >= TUBOS_ATE_CHEFAO) {
           estadoAtual = estados.CUTSCENE_BOSS;
-          cutsceneIndex = 0;
-          carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
+cutsceneIndex = 0;
+cutscenePodeAvancar = false;
+carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
+
+setTimeout(() => {
+  cutscenePodeAvancar = true;
+}, 5000);
+
         }
       }
 
@@ -257,7 +279,7 @@ const chefao = {
   largura: 180,
   altura: 180,
   direcao: 1,
-  velocidade: 2,
+  velocidade: 5,
   bandeiras: [],
   cigarros: [],
 
@@ -284,7 +306,7 @@ const chefao = {
     }
 
     // Disparo de bandeiras (ataque inimigo)
-    if (quadros % 60 === 0) {
+    if (quadros % 30 === 0) {
       this.bandeiras.push({
         x: this.x + this.largura / 2,
         y: this.y + this.altura / 2
@@ -449,7 +471,7 @@ botaoReiniciar.addEventListener("click", () => {
   chefao.reiniciar();
   estadoAtual = estados.PRONTO;
   quadros = 0;
-  pararMusicaFundo();
+  pararMusicaFundo(); // <-- garante que a música pare aqui também
 
   if (!jogoRodando) {
     jogoRodando = true;
