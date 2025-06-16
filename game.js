@@ -41,6 +41,11 @@ const musicaFundo = new Audio("music/musicajogo.mp3");
 musicaFundo.loop = true;
 musicaFundo.volume = 0.5;
 
+const suspenseFundo = new Audio('./music/suspensefundo.mp3');
+suspenseFundo.loop = true;
+suspenseFundo.volume = 0.8;
+
+
 const imagemCutscene = new Image();
 const imagemFundo = new Image();
 imagemFundo.src = "img/bg-battle.png";
@@ -138,12 +143,22 @@ function carregarImagemCutscene(src) {
 // === Lógica ao clicar ou apertar espaço ===
 function lidarComPulo() {
   if (estadoAtual === estados.CUTSCENE_INICIO) {
+
+    if (cutsceneIndex === 0) {
+      suspenseFundo.currentTime = 0;
+      suspenseFundo.play();
+    }
     cutsceneIndex++;
     if (cutsceneIndex >= imagensCutsceneInicio.length) {
+      // PARA A MÚSICA DE SUSPENSE AO SAIR DAS CUTSCENES
+      suspenseFundo.pause();
+      suspenseFundo.currentTime = 0;
+
       estadoAtual = estados.TUBOS;
       iniciarJogo();
       musicaFundo.play();
-    } else {
+    }
+    else {
       carregarImagemCutscene(imagensCutsceneInicio[cutsceneIndex]);
     }
   } else if (estadoAtual === estados.CUTSCENE_BOSS) {
@@ -212,9 +227,9 @@ canvas.addEventListener("click", (e) => {
 // === Tubos (obstáculos do jogo) ===
 const tubos = {
   posicoes: [],
-  largura: 96,
-  altura: 300,
-  espaco: 60,
+  largura: 126,
+  altura: 400,
+  espaco: 40,
 
   desenhar() {
     this.posicoes.forEach(tubo => {
