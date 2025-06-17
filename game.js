@@ -6,14 +6,33 @@ const contexto = canvas.getContext("2d");
 let quadros = 0;
 let tubosPassados = 0;
 let pontuacaoTubos = 0;
-const TUBOS_ATE_CHEFAO = 10;
+const TUBOS_ATE_CHEFAO = 1;
 let cutsceneImagemCarregada = false;
 let mortePorChefao = false;
 let vidaJamal = 12;
 let vidaChefao = 30;
+let chefaoEscudo = false;
+let escudoAtivo = false;
+let faseBoss = 1;
+let chefaoIntervaloDisparo = 20;
+let chefaoDisparoTriplo = false;
+let pocoes = []; // Array de poções ativas
+let tempoUltimaPocao = 0;
+let intervaloPocao = 3000; // a cada 8 segundos
+let tempoEscudoAtivo = 0;
+let escudoDuracao = 3000;
 let jogoRodando = false;
 let cutscenePodeAvancar = false;
 let gravidadeSuspensa = false;
+let energiaJamal = 0;
+let especialDisponivel = false;
+let explosaoAtiva = false;
+let tempoExplosao = 0;
+let tremorTela = false;
+let intensidadeTremor = 5;
+let tempoTremor = 0;
+let tempoPortal = 0;
+
 
 
 // === Definição dos estados possíveis do jogo ===
@@ -25,7 +44,8 @@ const estados = {
   VITORIA: 4,
   CUTSCENE_INICIO: 5,
   CUTSCENE_BOSS: 6,
-  CUTSCENE_VITORIA: 7
+  CUTSCENE_VITORIA: 7,
+  TRANSICAO_PORTAL: 8
 };
 
 let estadoAtual = estados.PRONTO;
@@ -59,6 +79,18 @@ const imagemTelaMorteBoss = new Image();
 imagemTelaMorteBoss.src = "img/telamorteboss.png";
 const imagemMenu = new Image();
 imagemMenu.src = "img/menu.png";
+const ataqueBoss = new Image();
+ataqueBoss.src = "img/bandeira.png"
+const ataqueJamal = new Image();
+ataqueJamal.src = "img/cigarro2.png"
+const imagemPocao = new Image();
+imagemPocao.src = "img/pocao.png"; 
+const imagemExplosao = new Image();
+imagemExplosao.src = "img/explosao.png";
+let imagemPortal = new Image();
+imagemPortal.src = "img/portal.png";
+const imagemVida = new Image();
+imagemVida.src = "img/vida.png";
 
 
 const somCaiu = new Audio("sounds/efeitos_caiu.wav");
@@ -107,6 +139,7 @@ const jamal = {
     pontuacaoTubos = 0;
     vidaJamal = 4;
     vidaChefao = 15;
+    this.x = 30;
   }
 };
 
@@ -219,17 +252,53 @@ canvas.addEventListener("click", (e) => {
       return;
     }
   }
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "F9") { // Verifica se a tecla pressionada é F9
+        // Força o jogo a ir direto para a cutscene da boss fight
+        estadoAtual = estados.CUTSCENE_BOSS;
+        cutsceneIndex = 0; // Reinicia o índice da cutscene para a do boss
+        cutscenePodeAvancar = false; // Garante que não avança imediatamente se a cutscene do boss tiver um delay
+
+        // Carrega a primeira imagem da cutscene do boss
+        // Assumindo que imagensCutsceneBoss tem pelo menos uma imagem
+        carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
+
+        // Suspende temporariamente a gravidade como na transição normal
+        // Isso é importante para Jamal não cair durante a transição
+        gravidadeSuspensa = true;
+        setTimeout(() => {
+            gravidadeSuspensa = false;
+            cutscenePodeAvancar = true; // Permite avançar a cutscene após o delay
+        }, 500); // Meio segundo de gravidade suspensa, ajuste se necessário
+
+        // Reinicia elementos do jogo para evitar bugs na transição
+        jamal.reiniciar();
+        tubos.reiniciar(); // Limpa os tubos existentes
+        chefao.reiniciar(); // Garante que o chefe comece do zero
+        pararMusicaFundo(); // Para a música dos tubos se estiver tocando
+    }
+});
+
+  document.addEventListener("keydown", (e) => {
+  if (e.key === "e" || e.key === "E") {
+    if (especialDisponivel && estadoAtual === estados.CHEFAO) {
+      ativarAtaqueEspecial();
+    }
+  }
+});
 
   lidarComPulo();
 });
 
 
+
+
 // === Tubos (obstáculos do jogo) ===
 const tubos = {
   posicoes: [],
-  largura: 126,
+  largura: 124,
   altura: 400,
-  espaco: 50,
+  espaco: 100,
 
   desenhar() {
     this.posicoes.forEach(tubo => {
@@ -291,14 +360,8 @@ const tubos = {
 
         // Início da cutscene do chefe
         if (tubosPassados >= TUBOS_ATE_CHEFAO) {
-          estadoAtual = estados.CUTSCENE_BOSS;
-          cutsceneIndex = 0;
-          cutscenePodeAvancar = false;
-          carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
-
-          setTimeout(() => {
-            cutscenePodeAvancar = true;
-          }, 5000);
+          estadoAtual = estados.TRANSICAO_PORTAL;
+          tempoPortal = Date.now();
 
         }
       }
@@ -336,13 +399,50 @@ const chefao = {
       return;
     }
 
-    // Vitória se vida do chefe acabar
-    if (vidaChefao <= 0) {
-      estadoAtual = estados.VITORIA;
-      cutsceneIndex = 0;
-      carregarImagemCutscene(imagensCutsceneVictoria[0]);
-      return;
+    if (vidaChefao <= 20 && faseBoss === 1) {
+        faseBoss = 2;
+        this.velocidade += 2;
+        chefaoIntervaloDisparo = 15;
+      }
+      if (vidaChefao <= 10 && faseBoss === 2) {
+        faseBoss = 3;
+        this.velocidade += 2;
+        chefaoIntervaloDisparo = 10;
+        chefaoDisparoTriplo = true;
+      }
+
+      // Ativa escudo temporário ao chegar na metade da vida
+      if (!chefaoEscudo && vidaChefao <= 15) {
+        chefaoEscudo = true;
+        escudoAtivo = true;
+        tempoEscudoAtivo = Date.now();
+      }
+
+      // Desativa escudo após tempo
+      if (escudoAtivo && Date.now() - tempoEscudoAtivo > escudoDuracao) {
+          escudoAtivo = false;
     }
+
+    // Vitória se vida do chefe acabar
+    if (vidaChefao <= 0 && !explosaoAtiva) {
+      explosaoAtiva = true;
+      tempoExplosao = Date.now();
+      this.bandeiras = [];
+      this.cigarros = [];
+      tremorTela = true;
+      tempoTremor = Date.now();
+}
+
+  if (explosaoAtiva) {
+  if (Date.now() - tempoExplosao > 2000) { // 2 segundos
+    explosaoAtiva = false;
+    tremorTela = false;
+    estadoAtual = estados.VITORIA;
+    cutsceneIndex = 0;
+    carregarImagemCutscene(imagensCutsceneVictoria[0]);
+  }
+  return; // pausa todas as atualizações enquanto a explosão ocorre
+}
 
     // Movimento vertical do chefão
     this.y += this.direcao * this.velocidade;
@@ -351,12 +451,23 @@ const chefao = {
     }
 
     // Disparo de bandeiras (ataque inimigo)
-    if (quadros % 20 === 0) {
-      this.bandeiras.push({
-        x: this.x + this.largura / 2,
-        y: this.y + this.altura / 2
-      });
-    }
+    if (quadros % chefaoIntervaloDisparo === 0) {
+  this.bandeiras.push({
+    x: this.x + this.largura / 2,
+    y: this.y + this.altura / 2
+  });
+
+  if (chefaoDisparoTriplo) {
+    this.bandeiras.push({
+      x: this.x + this.largura / 2,
+      y: this.y + this.altura / 2 - 20
+    });
+    this.bandeiras.push({
+      x: this.x + this.largura / 2,
+      y: this.y + this.altura / 2 + 20
+    });
+  }
+}
 
     // Atualização de bandeiras
     this.bandeiras.forEach(b => b.x -= 3);
@@ -387,9 +498,48 @@ const chefao = {
     this.cigarros.forEach(c => c.x += 5);
     this.cigarros = this.cigarros.filter(c => {
       const acerto = c.x + 16 >= this.x && c.x <= this.x + this.largura && c.y >= this.y && c.y <= this.y + this.altura;
-      if (acerto) vidaChefao--;
-      return c.x < canvas.width + 20 && !acerto;
-    });
+
+    if (acerto && !escudoAtivo) {
+    vidaChefao--;
+    energiaJamal += 10;
+  if (energiaJamal >= 100) {
+    energiaJamal = 100;
+    especialDisponivel = true;
+  }
+  }
+
+  return c.x < canvas.width + 20 && (!acerto || escudoAtivo);
+});
+
+  if (faseBoss === 3 && quadros % 300 === 0) {
+  this.y = Math.random() * (canvas.height - this.altura - 40);
+} 
+
+  // === Geração de poções durante a boss fight ===
+if (Date.now() - tempoUltimaPocao > intervaloPocao) {
+  pocoes.push({
+    x: canvas.width,
+    y: Math.random() * (canvas.height - 40),
+    largura: 32,
+    altura: 32
+  });
+  tempoUltimaPocao = Date.now();
+}
+
+// === Atualização das poções ===
+pocoes.forEach(p => p.x -= 2);
+pocoes = pocoes.filter(p => {
+  // Detecção de colisão com Jamal
+  const colidiu = jamal.x < p.x + p.largura &&
+                  jamal.x + jamal.largura > p.x &&
+                  jamal.y < p.y + p.altura &&
+                  jamal.y + jamal.altura > p.y;
+  if (colidiu) {
+    vidaJamal = Math.min(vidaJamal + 2, 12); // cura, máximo 12
+    somPonto.play(); // ou som de cura específico
+  }
+  return p.x + p.largura > 0 && !colidiu;
+});
   },
 
   desenhar() {
@@ -398,17 +548,47 @@ const chefao = {
     contexto.drawImage(imagemChefao, -this.x - this.largura, this.y, this.largura, this.altura);
     contexto.restore();
 
-    contexto.fillStyle = "orange";
-    this.bandeiras.forEach(b => contexto.fillRect(b.x, b.y, 20, 10));
+    this.bandeiras.forEach(b => {
+    contexto.drawImage(ataqueBoss, b.x, b.y, 40, 20);
+  });
 
-    contexto.fillStyle = "white";
-    this.cigarros.forEach(c => contexto.fillRect(c.x, c.y, 16, 4));
+    this.cigarros.forEach(b => {
+    contexto.drawImage(ataqueJamal, b.x, b.y, 48, 16);
+  });
 
-    contexto.fillStyle = "red";
+    contexto.fillStyle = "red"; // Vida chefao
     contexto.fillRect(canvas.width - 120, 20, vidaChefao * 10, 10);
 
-    contexto.fillStyle = "green";
-    contexto.fillRect(20, 40, vidaJamal * 20, 10);
+    // === HUD com ícones de vida do Jamal ===
+    for (let i = 0; i < vidaJamal; i++) {
+    contexto.drawImage(imagemVida, 20 + i * 24, 40, 20, 20);
+}
+
+    // Barra de energia do Jamal
+    contexto.fillStyle = "#555";
+    contexto.fillRect(20, 60, 200, 10); // fundo
+
+    contexto.fillStyle = "#FFD700";
+    contexto.fillRect(20, 60, 2 * energiaJamal, 10); // barra proporcional
+
+    contexto.strokeStyle = "black";
+    contexto.strokeRect(20, 60, 200, 10); // contorno
+
+    if (especialDisponivel) {
+    contexto.fillStyle = "white";
+    contexto.font = "12px 'Press Start 2P'";
+    contexto.fillText("PRESSIONE 'E' PARA ESPECIAL", canvas.width / 2, canvas.height - 20);
+}
+    if (explosaoAtiva) {
+  contexto.drawImage(
+    imagemExplosao,
+    this.x + this.largura / 2 - 64,
+    this.y + this.altura / 2 - 64,
+    128,
+    128
+  );
+}
+
   },
 
   reiniciar() {
@@ -416,11 +596,49 @@ const chefao = {
     this.cigarros = [];
     this.y = 80;
     this.direcao = 1;
+    faseBoss = 1;
+    chefaoIntervaloDisparo = 20;
+    chefaoDisparoTriplo = false;
+    chefaoEscudo = false;
+    escudoAtivo = false;
+    tempoEscudoAtivo = 0;
+    pocoes = [];
+    tempoUltimaPocao = Date.now();
+    explosaoAtiva = false;
   }
 };
 
+
+
+function ativarAtaqueEspecial() {
+  especialDisponivel = false;
+  energiaJamal = 0;
+
+  // Rajada de cigarros (5 tiros consecutivos)
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      chefao.cigarros.push({
+        x: jamal.x + jamal.largura,
+        y: jamal.y + jamal.altura / 2 - 20 + i * 10 // espalhado verticalmente
+      });
+    }, i * 100); // tempo entre os tiros
+  }
+
+  // Som opcional ou efeito visual
+  somPonto.play();
+}
+
+
 // === Renderização da tela principal ===
 function desenharJogo() {
+
+  // === Efeito de tremor da tela ===
+if (tremorTela) {
+  const deslocamentoX = (Math.random() - 0.5) * intensidadeTremor * 2;
+  const deslocamentoY = (Math.random() - 0.5) * intensidadeTremor * 2;
+  contexto.save();
+  contexto.translate(deslocamentoX, deslocamentoY);
+}
   contexto.clearRect(0, 0, canvas.width, canvas.height);
   contexto.drawImage(imagemFundo, 0, 0, canvas.width, canvas.height);
 
@@ -431,6 +649,23 @@ function desenharJogo() {
 
   if (estadoAtual === estados.TUBOS) tubos.desenhar();
   else if (estadoAtual === estados.CHEFAO) chefao.desenhar();
+
+  if (estadoAtual === estados.CHEFAO) {
+  pocoes.forEach(p => {
+    contexto.drawImage(imagemPocao, p.x, p.y, p.largura, p.altura);
+  });
+} 
+  if (estadoAtual === estados.TRANSICAO_PORTAL) {
+  contexto.clearRect(0, 0, canvas.width, canvas.height);
+  contexto.drawImage(imagemFundo, 0, 0, canvas.width, canvas.height);
+
+  // Portal no centro
+  contexto.drawImage(imagemPortal, canvas.width / 2 - 64, canvas.height / 2 - 64, 128, 128);
+
+  jamal.desenhar();
+  return;
+}
+
 
   jamal.desenhar();
 
@@ -469,6 +704,10 @@ function desenharJogo() {
   } else {
     botaoReiniciar.style.display = "none";
   }
+
+  if (tremorTela) {
+  contexto.restore();
+}
 }
 
 // === Exibição das cutscenes ===
@@ -489,6 +728,30 @@ function atualizarJogo() {
   if ([estados.TUBOS, estados.CHEFAO].includes(estadoAtual)) {
     jamal.atualizar();
   }
+
+  if (estadoAtual === estados.TRANSICAO_PORTAL) {
+  // Jamal é puxado para o centro da tela lentamente
+  const destinoX = canvas.width / 2 - jamal.largura / 2;
+  const destinoY = canvas.height / 2 - jamal.altura / 2;
+
+  jamal.x += (destinoX - jamal.x) * 0.05;
+  jamal.y += (destinoY - jamal.y) * 0.05;
+
+  if (Date.now() - tempoPortal > 2000) {
+    estadoAtual = estados.CUTSCENE_BOSS;
+    cutsceneIndex = 0;
+    cutscenePodeAvancar = false;
+    carregarImagemCutscene(imagensCutsceneBoss[cutsceneIndex]);
+
+    // Ajusta a posição do Jamal após entrar no portal
+    jamal.x = 80;
+    jamal.y = canvas.height / 2 - jamal.altura / 2;
+
+    setTimeout(() => {
+      cutscenePodeAvancar = true;
+    }, 500);
+  }
+}
 }
 
 // === Início de uma nova partida ===
